@@ -1,0 +1,5 @@
+## Insall Dengine:
+	sudo bash ./install_dengine
+
+## Verification:
+	sudo bash ./verification
