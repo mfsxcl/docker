@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 
+if [ ! ${SERVER_PORT} ]; then
+  SERVER_PORT=8080;
+fi
+
+if [ ! ${SERVER_IP} ]; then
+  SERVER_IP=127.0.0.1;
+fi
+
+if [ ! ${SERVER_NAME} ]; then
+  SERVER_NAME=$(hostname);
+fi
+
+if [ ! ${JAVA_XMX} ]; then
+  JAVA_XMX=3000M;
+fi
+
 #echo tomcat/conf/server.xml
 SERVER_XML=${CATALINA_HOME}/conf/server.xml
 echo "<?xml version='1.0' encoding='utf-8'?>
@@ -14,7 +30,12 @@ echo "<?xml version='1.0' encoding='utf-8'?>
     <!--The connectors can use a shared executor, you can define one or more named thread pools-->
     <Executor name=\"tomcatThreadPool\" namePrefix=\"catalina-exec-\" maxThreads=\"512\" minSpareThreads=\"4\"/>
     <Connector executor=\"tomcatThreadPool\"
-               port=\"8080\" protocol=\"HTTP/1.1\" URIEncoding=\"UTF-8\"
+               port=\"${SERVER_PORT}\"
+               enableLookups=\"false\"
+               disableUploadTimeout=\"true\"
+               acceptCount=\"512\"
+               protocol=\"HTTP/1.1\"
+               URIEncoding=\"UTF-8\"
                connectionTimeout=\"20000\"
                redirectPort=\"8443\" />
     <!--
@@ -39,9 +60,32 @@ echo "<?xml version='1.0' encoding='utf-8'?>
 
 echo "set hosts start"
 cp /etc/hosts /etc/hosts.temp
-sed -i "s/.*$(hostname)/$DOCKER_IP $(hostname)/" /etc/hosts.temp
+sed -i "s/.*$(hostname)/$SERVER_IP $(hostname)/" /etc/hosts.temp
 cat /etc/hosts.temp > /etc/hosts
 echo "set hosts end"
+
+export CATALINA_OPTS="
+-server
+-Xms${JAVA_XMX}
+-Xmx${JAVA_XMX}
+-Xss512k
+-XX:NewSize=1550M
+-XX:MaxNewSize=1550M
+-XX:PermSize=128M
+-XX:MaxPermSize=256M
+-XX:+AggressiveOpts
+-XX:+UseBiasedLocking
+-XX:+DisableExplicitGC
+-XX:+UseParNewGC
+-XX:+UseConcMarkSweepGC
+-XX:MaxTenuringThreshold=31
+-XX:+CMSParallelRemarkEnabled
+-XX:+UseCMSCompactAtFullCollection
+-XX:LargePageSizeInBytes=128m
+-XX:+UseFastAccessorMethods
+-XX:+UseCMSInitiatingOccupancyOnly
+-Duser.timezone=Asia/Shanghai
+-Djava.awt.headless=true"
 
 
 echo "starting tomcat...."
