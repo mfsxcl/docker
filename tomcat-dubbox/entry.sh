@@ -4,6 +4,16 @@ if [ ! ${SERVER_PORT} ]; then
   SERVER_PORT=8080;
 fi
 
+SERVER_PORT_SERVER=$[SERVER_PORT+1111];
+echo "SERVER_PORT_SERVER=${SERVER_PORT_SERVER}"
+
+SERVER_PORT_REDIRECT=$[SERVER_PORT+2222];
+echo "SERVER_PORT_REDIRECT=${SERVER_PORT_REDIRECT}"
+
+SERVER_PORT_AJP=$[SERVER_PORT+3333];
+echo "SERVER_PORT_AJP=${SERVER_PORT_AJP}"
+
+
 if [ ! ${SERVER_IP} ]; then
   SERVER_IP=127.0.0.1;
 fi
@@ -19,7 +29,7 @@ fi
 #echo tomcat/conf/server.xml
 SERVER_XML=${CATALINA_HOME}/conf/server.xml
 echo "<?xml version='1.0' encoding='utf-8'?>
-<Server port=\"8005\" shutdown=\"SHUTDOWN\">
+<Server port=\"${SERVER_PORT_SERVER}\" shutdown=\"SHUTDOWN\">
   <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />
   <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />
   <Listener className=\"org.apache.catalina.core.JasperListener\" />
@@ -37,26 +47,31 @@ echo "<?xml version='1.0' encoding='utf-8'?>
                protocol=\"HTTP/1.1\"
                URIEncoding=\"UTF-8\"
                connectionTimeout=\"20000\"
-               redirectPort=\"8443\" />
+               redirectPort=\"${SERVER_PORT_REDIRECT}\" />
     <!--
-    <Connector port=\"8443\" protocol=\"org.apache.coyote.http11.Http11Protocol\"
+    <Connector port=\"${SERVER_PORT_REDIRECT}\" protocol=\"org.apache.coyote.http11.Http11Protocol\"
                maxThreads=\"150\" SSLEnabled=\"true\" URIEncoding=\"UTF-8\" scheme=\"https\" secure=\"true\"
                clientAuth=\"false\" sslProtocol=\"TLS\" />
     -->
     <!-- Define an AJP 1.3 Connector on port 8009 -->
-    <Connector port=\"8009\" protocol=\"AJP/1.3\" redirectPort=\"8443\" />
+    <Connector port=\"${SERVER_PORT_AJP}\" protocol=\"AJP/1.3\" redirectPort=\"${SERVER_PORT_REDIRECT}\" />
     <Engine name=\"Catalina\" defaultHost=\"localhost\">
-      <Host name=\"localhost\" appBase=\"webapps\" unpackWARs=\"true\" autoDeploy=\"false\">
+      <Host name=\"localhost\" appBase=\"webapps\" unpackWARs=\"true\" autoDeploy=\"true\">
       <Valve className=\"org.apache.catalina.valves.AccessLogValve\"
             directory=\"logs\"
             prefix=\"\" suffix=\"_access_log\"
-            pattern=\"%{yyyy-MM-dd HH:mm:ss}t ${HOST_NAME} %p %h %D %m %U %q %s 0 0 &quot;%{User-Agent}i&quot; &quot;%{Referer}i&quot;\"
+            pattern=\"%{yyyy-MM-dd HH:mm:ss}t ${SERVER_NAME} %p %h %D %m %U %q %s 0 0 &quot;%{User-Agent}i&quot; &quot;%{Referer}i&quot;\"
             fileDateFormat=\"yyyy-MM-dd_HH\"/>
       </Host>
     </Engine>
   </Service>
 </Server>" > ${SERVER_XML}
 
+rm -rf ${CATALINA_HOME}/webapps/ROOT
+rm -rf ${CATALINA_HOME}/webapps/docs
+rm -rf ${CATALINA_HOME}/webapps/examples
+rm -rf ${CATALINA_HOME}/webapps/manager
+rm -rf ${CATALINA_HOME}/webapps/host-manager
 
 echo "set hosts start"
 cp /etc/hosts /etc/hosts.temp
