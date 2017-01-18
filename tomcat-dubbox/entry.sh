@@ -4,19 +4,17 @@ if [ ! ${SERVER_PORT} ]; then
   SERVER_PORT=8080;
 fi
 
-SERVER_PORT_SERVER=$[SERVER_PORT+1111];
+SERVER_PORT_SERVER=$[SERVER_PORT+3111];
 echo "SERVER_PORT_SERVER=${SERVER_PORT_SERVER}"
 
-SERVER_PORT_REDIRECT=$[SERVER_PORT+2222];
+SERVER_PORT_REDIRECT=$[SERVER_PORT+3222];
 echo "SERVER_PORT_REDIRECT=${SERVER_PORT_REDIRECT}"
 
 SERVER_PORT_AJP=$[SERVER_PORT+3333];
 echo "SERVER_PORT_AJP=${SERVER_PORT_AJP}"
 
 
-if [ ! ${SERVER_IP} ]; then
-  SERVER_IP=127.0.0.1;
-fi
+
 
 if [ ! ${SERVER_NAME} ]; then
   SERVER_NAME=$(hostname);
@@ -58,7 +56,7 @@ echo "<?xml version='1.0' encoding='utf-8'?>
     <Engine name=\"Catalina\" defaultHost=\"localhost\">
       <Host name=\"localhost\" appBase=\"webapps\" unpackWARs=\"true\" autoDeploy=\"true\">
       <Valve className=\"org.apache.catalina.valves.AccessLogValve\"
-            directory=\"logs\"
+            directory=\"logs/access\"
             prefix=\"\" suffix=\"_access_log\"
             pattern=\"%{yyyy-MM-dd HH:mm:ss}t ${SERVER_NAME} %p %h %D %m %U %q %s 0 0 &quot;%{User-Agent}i&quot; &quot;%{Referer}i&quot;\"
             fileDateFormat=\"yyyy-MM-dd_HH\"/>
@@ -73,11 +71,17 @@ rm -rf ${CATALINA_HOME}/webapps/examples
 rm -rf ${CATALINA_HOME}/webapps/manager
 rm -rf ${CATALINA_HOME}/webapps/host-manager
 
-echo "set hosts start"
-cp /etc/hosts /etc/hosts.temp
-sed -i "s/.*$(hostname)/$SERVER_IP $(hostname)/" /etc/hosts.temp
-cat /etc/hosts.temp > /etc/hosts
-echo "set hosts end"
+
+if [ ! ${SERVER_IP} ]; then
+    echo "NOT SET SERVER IP"
+else
+    echo "set hosts start"
+    cp /etc/hosts /etc/hosts.temp
+    sed -i "s/.*$(hostname)/$SERVER_IP $(hostname)/" /etc/hosts.temp
+    cat /etc/hosts.temp > /etc/hosts
+    echo "set hosts end"
+fi
+
 
 export CATALINA_OPTS="
 -server
