@@ -14,8 +14,6 @@ SERVER_PORT_AJP=$[SERVER_PORT+3333];
 echo "SERVER_PORT_AJP=${SERVER_PORT_AJP}"
 
 
-
-
 if [ ! ${SERVER_NAME} ]; then
   SERVER_NAME=$(hostname);
 fi
@@ -77,7 +75,7 @@ if [ ! ${SERVER_IP} ]; then
 else
     echo "set hosts start"
     cp /etc/hosts /etc/hosts.temp
-    sed -i "s/.*$(hostname)/$SERVER_IP $(hostname)/" /etc/hosts.temp
+    sed -i "s/.*$(hostname)/${SERVER_IP} $(hostname)/" /etc/hosts.temp
     cat /etc/hosts.temp > /etc/hosts
     echo "set hosts end"
 fi
