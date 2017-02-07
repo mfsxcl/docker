@@ -246,7 +246,7 @@ if Bool(env('SENTRY_USE_SSL', False)):
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {
-    # 'workers': 3,  # the number of web workers
+    'workers': 8,  # the number of web workers
 }
 
 ###############
