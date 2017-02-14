@@ -97,7 +97,6 @@ export CATALINA_OPTS="
 -XX:+UseCMSCompactAtFullCollection
 -XX:LargePageSizeInBytes=128m
 -XX:+UseFastAccessorMethods
--XX:+UseCMSInitiatingOccupancyOnly
 -Duser.timezone=Asia/Shanghai
 -Djava.awt.headless=true"
 
