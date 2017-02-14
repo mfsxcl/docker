@@ -88,8 +88,6 @@ export CATALINA_OPTS="
 -Xss512k
 -XX:NewSize=1550M
 -XX:MaxNewSize=1550M
--XX:PermSize=128M
--XX:MaxPermSize=256M
 -XX:+AggressiveOpts
 -XX:+UseBiasedLocking
 -XX:+DisableExplicitGC
