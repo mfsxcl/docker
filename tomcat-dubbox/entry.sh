@@ -95,7 +95,6 @@ export CATALINA_OPTS="
 -XX:+DisableExplicitGC
 -XX:+UseParNewGC
 -XX:+UseConcMarkSweepGC
--XX:MaxTenuringThreshold=31
 -XX:+CMSParallelRemarkEnabled
 -XX:+UseCMSCompactAtFullCollection
 -XX:LargePageSizeInBytes=128m
