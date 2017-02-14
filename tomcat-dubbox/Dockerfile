@@ -1,4 +1,4 @@
-FROM davidcaste/alpine-tomcat:jdk7tomcat7
+FROM davidcaste/alpine-tomcat:jdk8tomcat8
 
 ENV ENTRY_FILE=/opt/entry.sh
 ENV GREYS_ROOT=/root/.greys/lib/1.7.6.4/greys
