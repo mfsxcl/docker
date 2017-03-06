@@ -1,8 +1,10 @@
 var phridge = require('phridge')
-  , _ = require('lodash')
-  , util = require('./util.js')
-  , zlib = require('zlib')
-  , blockedResources = require('./resources/blocked-resources.json');
+    , _ = require('lodash')
+    , util = require('./util.js')
+    , zlib = require('zlib')
+    , raven = require('./utilRaven.js')
+    , blockedResources = require('./resources/blocked-resources.json');
+
 
 var COOKIES_ENABLED = process.env.COOKIES_ENABLED || true;
 
@@ -26,30 +28,30 @@ var NUM_SOFT_ITERATIONS = process.env.NUM_SOFT_ITERATIONS || 30;
 
 var server = exports = module.exports = {};
 
-server.init = function(options) {
+server.init = function (options) {
     this.plugins = this.plugins || [];
     this.options = options;
 
     return this;
 };
 
-server.start = function() {
-    if(!this.options.isMaster) {
+server.start = function () {
+    if (!this.options.isMaster) {
         this.createPhantom();
     }
 };
 
-server.use = function(plugin) {
+server.use = function (plugin) {
     this.plugins.push(plugin);
     if (typeof plugin.init === 'function') plugin.init(this);
 };
 
-server._pluginEvent = function(methodName, args, callback) {
+server._pluginEvent = function (methodName, args, callback) {
     var _this = this
-      , index = 0
-      , next;
+        , index = 0
+        , next;
 
-    next = function() {
+    next = function () {
         var layer = _this.plugins[index++];
         if (!layer) return callback();
 
@@ -66,29 +68,29 @@ server._pluginEvent = function(methodName, args, callback) {
     next();
 };
 
-server.createPhantom = function() {
+server.createPhantom = function () {
     var _this = this;
 
     var args = {'--load-images': false, '--ignore-ssl-errors': true, '--ssl-protocol': 'tlsv1.2'};
 
-    if(this.options.phantomArguments && !_.isEmpty(this.options.phantomArguments)) {
+    if (this.options.phantomArguments && !_.isEmpty(this.options.phantomArguments)) {
         args = _.clone(this.options.phantomArguments);
     }
 
     util.log('starting phantom...');
 
-    if(this.options.onStdout) {
-      phridge.config.stdout = this.options.onStdout;
+    if (this.options.onStdout) {
+        phridge.config.stdout = this.options.onStdout;
     }
 
-    if(this.options.onStderr) {
-      phridge.config.stderr = this.options.onStderr;
+    if (this.options.onStderr) {
+        phridge.config.stderr = this.options.onStderr;
     }
 
     phridge.spawn(args).then(_.bind(_this.onPhantomCreate, _this));
 };
 
-server.onPhantomCreate = function(phantom) {
+server.onPhantomCreate = function (phantom) {
     var _this = this;
 
     util.log('started phantom');
@@ -100,7 +102,7 @@ server.onPhantomCreate = function(phantom) {
     //send the current phantomjs pid to the cluster master in order to make sure phantomjs is properly killed if this worker dies
     process.send({phantomjsPid: this.phantom.childProcess.pid});
 
-    this.phantom.on('unexpectedExit', function(err) {
+    this.phantom.on('unexpectedExit', function (err) {
         util.log('phantom crashed, restarting...');
 
         function restartPhantom() {
@@ -111,7 +113,7 @@ server.onPhantomCreate = function(phantom) {
     });
 };
 
-server.onRequest = function(req, res) {
+server.onRequest = function (req, res) {
     var _this = this;
 
     // Create a partial out of the _send method for the convenience of plugins
@@ -124,16 +126,16 @@ server.onRequest = function(req, res) {
 
     util.log('getting', req.prerender.url);
 
-    this._pluginEvent("beforePhantomRequest", [req, res], function() {
+    this._pluginEvent("beforePhantomRequest", [req, res], function () {
         _this.createPage(req, res);
     });
 };
 
-server.createPage = function(req, res) {
+server.createPage = function (req, res) {
     var _this = this;
 
-    if(!this.phantom) {
-        setTimeout(function(){
+    if (!this.phantom) {
+        setTimeout(function () {
             _this.createPage(req, res);
         }, 50);
     } else {
@@ -145,25 +147,23 @@ server.createPage = function(req, res) {
     }
 };
 
-server.onPhantomPageCreate = function(req, res) {
+server.onPhantomPageCreate = function (req, res) {
     var _this = this;
-
     req.prerender.stage = 0;
     req.prerender.pendingRequests = 0;
 
-    this.phantom.run((req.prerender.cookiesEnabled || _this.options.cookiesEnabled || COOKIES_ENABLED), function(cookiesEnabled) {
+    this.phantom.run((req.prerender.cookiesEnabled || _this.options.cookiesEnabled || COOKIES_ENABLED), function (cookiesEnabled) {
         this.cookiesEnabled = cookiesEnabled;
     });
 
-    if(req.prerender.isPageClosed) {
+    if (req.prerender.isPageClosed) {
         return res.send(504);
     }
 
     this.clearLocalStorage(req, res);
     this.clearMemoryCache(req, res);
 
-    req.prerender.page.run(_this.options.blockedResources || blockedResources, !!_this.options.logRequests, function(blockedResources, logRequests, resolve, reject) {
-
+    req.prerender.page.run( _this.options.blockedResources || blockedResources, !!_this.options.logRequests, function (blockedResources, logRequests, resolve, reject) {
         var _this = this;
         this.prerender = {
             resourcesRequested: [],
@@ -172,40 +172,40 @@ server.onPhantomPageCreate = function(req, res) {
             lastResourceReceived: null
         };
 
-        this.onResourceRequested = function(requestData, request) {
-            for(var i = 0,l = blockedResources.length; i < l; i++) {
+        this.onResourceRequested = function (requestData, request) {
+            for (var i = 0, l = blockedResources.length; i < l; i++) {
                 var regex = new RegExp(blockedResources[i], 'gi');
-                if(regex.test(requestData.url)) {
+                if (regex.test(requestData.url)) {
                     request.abort();
                     requestData.aborted = true;
                     break;
                 }
             }
 
-            if(!requestData.aborted) {
+            if (!requestData.aborted) {
                 _this.prerender.resourcesRequested.push(requestData);
 
-                if(logRequests) {
+                if (logRequests) {
                     console.log(new Date().toISOString(), '+', _this.prerender.resourcesRequested.length - _this.prerender.resourcesReceived.length - _this.prerender.resourcesTimeout.length, requestData.url);
                 }
             }
         };
 
-        this.onResourceReceived = function(response) {
+        this.onResourceReceived = function (response) {
             _this.prerender.lastResourceReceived = new Date();
 
 
-            if(response.id === 1) {
+            if (response.id === 1) {
                 _this.prerender.headers = response.headers;
                 _this.prerender.statusCode = response.status;
                 _this.prerender.redirectURL = response.redirectURL;
             }
 
             if ('end' === response.stage) {
-                if(response.url) {
+                if (response.url) {
                     _this.prerender.resourcesReceived.push(response);
 
-                    if(logRequests) {
+                    if (logRequests) {
                         console.log(new Date().toISOString(), '-', _this.prerender.resourcesRequested.length - _this.prerender.resourcesReceived.length - _this.prerender.resourcesTimeout.length, response.url);
                     }
                 }
@@ -216,66 +216,67 @@ server.onPhantomPageCreate = function(req, res) {
             }
         };
 
-        this.onResourceTimeout = function(request) {
-            if(request.url) {
+        this.onResourceTimeout = function (request) {
+            if (request.url) {
                 _this.prerender.resourcesTimeout.push(request);
             }
         }
 
-        this.onResourceError = function(resourceError) {
-            if(resourceError.url && logRequests) {
+        this.onResourceError = function (resourceError) {
+            if (resourceError.url && logRequests) {
                 console.log('error loading URL:', JSON.stringify(resourceError));
             }
         }
 
-        this.viewportSize = { width: 1440, height: 718 };
-        this.settings.userAgent = this.settings.userAgent + ' Prerender (+https://github.com/prerender/prerender)';
+        this.viewportSize = {width: 1440, height: 718};
+        this.settings.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36';
+
 
         resolve();
 
     });
 
-    req.prerender.page.run(function(resolve) {
-        this.onClosing = function() {
+    req.prerender.page.run(function (resolve) {
+        this.onClosing = function () {
             resolve(true);
         };
-    }).then(function(isPageClosed) {
+    }).then(function (isPageClosed) {
         req.prerender.isPageClosed = isPageClosed;
     });
 
     // Fire off a middleware event, then download all of the assets
-    _this._pluginEvent("onPhantomPageCreate", [_this.phantom, req, res], function() {
+    _this._pluginEvent("onPhantomPageCreate", [_this.phantom, req, res], function () {
         req.prerender.downloadStarted = req.prerender.lastResourceReceived = new Date();
 
-        req.prerender.downloadChecker = setInterval(function() {
+        req.prerender.downloadChecker = setInterval(function () {
             _this.checkIfPageIsDoneLoading(req, res);
         }, (req.prerender.pageDoneCheckTimeout || _this.options.pageDoneCheckTimeout || PAGE_DONE_CHECK_TIMEOUT));
 
-        if(req.prerender.isPageClosed) {
+        if (req.prerender.isPageClosed) {
             return res.send(504);
         }
 
         var urlToFetch = req.prerender.url;
-        if(_this.shouldEncodeURLBeforeBrowserFetch(req)) {
-          urlToFetch = encodeURI(req.prerender.url).replace('%2523', '%23')
+        if (_this.shouldEncodeURLBeforeBrowserFetch(req)) {
+            urlToFetch = encodeURI(req.prerender.url).replace('%2523', '%23')
         }
 
-        req.prerender.page.run(urlToFetch, function(url, resolve, reject) {
+        req.prerender.page.run(urlToFetch, function (url, resolve, reject) {
 
-            this.open(url, function(status) {
+            this.open(url, function (status) {
                 resolve(status);
             });
-        }).then(function(status) {
+        }).then(function (status) {
             req.prerender.status = status;
         });
     });
 };
 
 // Called occasionally to check if a page is completely loaded
-server.checkIfPageIsDoneLoading = function(req, res) {
+server.checkIfPageIsDoneLoading = function (req, res) {
     var _this = this;
 
-    if(req.prerender.stage >= 2) return;
+    if (req.prerender.stage >= 2) return;
 
     if (!this.phantom || this.phantom.id !== req.prerender.phantomId) {
         util.log('PhantomJS restarted in the middle of this request. Aborting...')
@@ -284,41 +285,41 @@ server.checkIfPageIsDoneLoading = function(req, res) {
         return res.send(504);
     }
 
-    if(req.prerender.isPageClosed) {
+    if (req.prerender.isPageClosed) {
         util.log('PhantomJS page was closed in the middle of this request. Aborting...')
         clearInterval(req.prerender.downloadChecker);
         req.prerender.downloadChecker = null;
         return res.send(504);
     }
 
-    req.prerender.page.run(function(resolve) {
+    req.prerender.page.run(function (resolve) {
         resolve(this.prerender);
 
-    }).then(function(response) {
+    }).then(function (response) {
         req.prerender.pendingRequests = response.resourcesRequested.length - response.resourcesReceived.length - response.resourcesTimeout.length;
         req.prerender.lastResourceReceived = new Date(response.lastResourceReceived);
         req.prerender.headers = response.headers;
         req.prerender.statusCode = response.statusCode;
         req.prerender.redirectURL = response.redirectURL;
 
-        var match = _.find(req.prerender.headers, { name: 'Location' });
+        var match = _.find(req.prerender.headers, {name: 'Location'});
         if (match) {
             req.prerender.redirectURL = util.normalizeUrl(match.value);
         }
 
-        if(req.prerender.statusCode && req.prerender.statusCode >= 300 && req.prerender.statusCode <= 399) {
+        if (req.prerender.statusCode && req.prerender.statusCode >= 300 && req.prerender.statusCode <= 399) {
             // Finish up if we got a redirect status code
             clearInterval(req.prerender.downloadChecker);
             req.prerender.downloadChecker = null;
 
-            if(req.prerender.stage >= 2) return;
+            if (req.prerender.stage >= 2) return;
             return res.send(req.prerender.statusCode);
         }
 
         var timedOut = new Date().getTime() - req.prerender.downloadStarted.getTime() > (req.prerender.resourceDownloadTimeout || _this.options.resourceDownloadTimeout || RESOURCE_DOWNLOAD_TIMEOUT)
-          , timeSinceLastRequest = new Date().getTime() - req.prerender.lastResourceReceived.getTime();
+            , timeSinceLastRequest = new Date().getTime() - req.prerender.lastResourceReceived.getTime();
 
-        if(req.prerender.status === 'fail' && !_this.overridePageFailure(req)) {
+        if (req.prerender.status === 'fail' && !_this.overridePageFailure(req)) {
             clearInterval(req.prerender.downloadChecker);
             req.prerender.downloadChecker = null;
 
@@ -330,7 +331,7 @@ server.checkIfPageIsDoneLoading = function(req, res) {
         // once, and check against a bunch of states that would signal finish - if
         // resource downloads have timed out, if the page has errored out, or if
         // there are no pending requests left
-        if(req.prerender.stage < 1 && (req.prerender.status !== null && req.prerender.pendingRequests <= 0 && (timeSinceLastRequest > (req.prerender.waitAfterLastRequest || _this.options.waitAfterLastRequest || WAIT_AFTER_LAST_REQUEST)) || timedOut)) {
+        if (req.prerender.stage < 1 && (req.prerender.status !== null && req.prerender.pendingRequests <= 0 && (timeSinceLastRequest > (req.prerender.waitAfterLastRequest || _this.options.waitAfterLastRequest || WAIT_AFTER_LAST_REQUEST)) || timedOut)) {
             req.prerender.stage = 1;
             clearInterval(req.prerender.downloadChecker);
             req.prerender.downloadChecker = null;
@@ -339,25 +340,25 @@ server.checkIfPageIsDoneLoading = function(req, res) {
             req.prerender.timeoutChecker = setInterval(_.bind(_this.checkIfJavascriptTimedOut, _this, req, res), (req.prerender.jsCheckTimeout || _this.options.jsCheckTimeout || JS_CHECK_TIMEOUT));
             _this.evaluateJavascriptOnPage(req, res);
         }
-    }).catch(function(err) {
+    }).catch(function (err) {
         console.log(err);
     });
 };
 
 // sometimes older versions of phantomjs would report a "fail" for a page even though the page still loaded correctly.
 // this is to let you override that failure and just continue on based on URL pattern or anything like that
-server.overridePageFailure = function(req) {
+server.overridePageFailure = function (req) {
     return false;
 };
 
 // this is to let you override the encodeURI before fetching with PhantomJS.
 // useful for cases where you might want to allow certain encoded slashes in the url
-server.shouldEncodeURLBeforeBrowserFetch = function(req) {
+server.shouldEncodeURLBeforeBrowserFetch = function (req) {
     return true;
 };
 
 // Checks to see if the execution of javascript has timed out
-server.checkIfJavascriptTimedOut = function(req, res) {
+server.checkIfJavascriptTimedOut = function (req, res) {
 
     var timeout = new Date().getTime() - req.prerender.downloadFinished.getTime() > (req.prerender.jsTimeout || this.options.jsTimeout || JS_TIMEOUT);
     var lastJsExecutionWasLessThanTwoSecondsAgo = req.prerender.lastJavascriptExecution && (new Date().getTime() - req.prerender.lastJavascriptExecution.getTime() < 2000);
@@ -386,31 +387,31 @@ server.checkIfJavascriptTimedOut = function(req, res) {
 };
 
 // Evaluates the javascript on the page
-server.evaluateJavascriptOnPage = function(req, res) {
+server.evaluateJavascriptOnPage = function (req, res) {
     var _this = this;
 
-    if(req.prerender.stage >= 2) return;
+    if (req.prerender.stage >= 2) return;
 
-    if(req.prerender.isPageClosed) {
+    if (req.prerender.isPageClosed) {
         clearInterval(req.prerender.timeoutChecker);
         req.prerender.timeoutChecker = null;
         return res.send(504);
     }
 
-    req.prerender.page.run(function(resolve, reject) {
+    req.prerender.page.run(function (resolve, reject) {
 
-        var obj = this.evaluate(function() {
+        var obj = this.evaluate(function () {
             try {
                 var doctype = ''
-                  , html = document && document.getElementsByTagName('html');
+                    , html = document && document.getElementsByTagName('html');
 
-                if(document.doctype) {
+                if (document.doctype) {
                     doctype = "<!DOCTYPE "
-                         + document.doctype.name
-                         + (document.doctype.publicId ? ' PUBLIC "' + document.doctype.publicId + '"' : '')
-                         + (!document.doctype.publicId && document.doctype.systemId ? ' SYSTEM' : '')
-                         + (document.doctype.systemId ? ' "' + document.doctype.systemId + '"' : '')
-                         + '>';
+                        + document.doctype.name
+                        + (document.doctype.publicId ? ' PUBLIC "' + document.doctype.publicId + '"' : '')
+                        + (!document.doctype.publicId && document.doctype.systemId ? ' SYSTEM' : '')
+                        + (document.doctype.systemId ? ' "' + document.doctype.systemId + '"' : '')
+                        + '>';
                 }
 
                 if (html && html[0]) {
@@ -421,7 +422,8 @@ server.evaluateJavascriptOnPage = function(req, res) {
                     };
                 }
 
-            } catch (e) { }
+            } catch (e) {
+            }
 
             return {
                 html: '',
@@ -433,74 +435,77 @@ server.evaluateJavascriptOnPage = function(req, res) {
 
         resolve(obj);
 
-    }).then(function(obj) {
+    }).then(function (obj) {
         // Update the evaluated HTML
         req.prerender.documentHTML = obj.html;
         req.prerender.lastJavascriptExecution = new Date();
 
-        if(!obj.shouldWaitForPrerenderReady || (obj.shouldWaitForPrerenderReady && obj.prerenderReady)) {
+        if (!obj.shouldWaitForPrerenderReady || (obj.shouldWaitForPrerenderReady && obj.prerenderReady)) {
             clearInterval(req.prerender.timeoutChecker);
             req.prerender.timeoutChecker = null;
 
             _this.onPageEvaluate(req, res);
         } else {
             setTimeout(_.bind(_this.evaluateJavascriptOnPage, _this, req, res), (req.prerender.evaluateJavascriptCheckTimeout || _this.options.evaluateJavascriptCheckTimeout || EVALUATE_JAVASCRIPT_CHECK_TIMEOUT));
-        };
-    }).catch(function(err) {
+        }
+        ;
+    }).catch(function (err) {
         util.log('error evaluating javascript', err);
         setTimeout(_.bind(_this.evaluateJavascriptOnPage, _this, req, res), (req.prerender.evaluateJavascriptCheckTimeout || _this.options.evaluateJavascriptCheckTimeout || EVALUATE_JAVASCRIPT_CHECK_TIMEOUT));
     });
 };
 
 // Called when we're done evaluating the javascript on the page
-server.onPageEvaluate = function(req, res) {
+server.onPageEvaluate = function (req, res) {
 
-    if(req.prerender.stage >= 2) return;
+    if (req.prerender.stage >= 2) return;
 
     req.prerender.stage = 2;
 
     if (!req.prerender.documentHTML) {
         res.send(req.prerender.statusCode || 404);
     } else {
-        this._pluginEvent("afterPhantomRequest", [req, res], function() {
+        this._pluginEvent("afterPhantomRequest", [req, res], function () {
             res.send(req.prerender.statusCode || 200);
         });
     }
 };
 
-server.clearLocalStorage = function(req, res) {
-    if(!req.prerender.page || req.prerender.isPageClosed) {
+server.clearLocalStorage = function (req, res) {
+    if (!req.prerender.page || req.prerender.isPageClosed) {
         return;
     }
 
-    req.prerender.page.run(function() {
+    req.prerender.page.run(function () {
         try {
-            if(localStorage && typeof localStorage.clear == 'function') {
+            if (localStorage && typeof localStorage.clear == 'function') {
                 localStorage.clear();
             }
-        } catch (e) {}
+        } catch (e) {
+        }
     });
 };
 
-server.clearMemoryCache = function(req, res) {
-    if(!req.prerender.page || req.prerender.isPageClosed) {
+server.clearMemoryCache = function (req, res) {
+    if (!req.prerender.page || req.prerender.isPageClosed) {
         return;
     }
 
-    req.prerender.page.run(function() {
+    req.prerender.page.run(function () {
         try {
-            if(this.clearMemoryCache && typeof this.clearMemoryCache == 'function') {
+            if (this.clearMemoryCache && typeof this.clearMemoryCache == 'function') {
                 this.clearMemoryCache();
             }
-        } catch (e) {}
+        } catch (e) {
+        }
     });
 };
 
-server._send = function(req, res, statusCode, options) {
+server._send = function (req, res, statusCode, options) {
     var _this = this;
 
-    if(req.prerender.page) {
-        req.prerender.page.dispose().then(function() {
+    if (req.prerender.page) {
+        req.prerender.page.dispose().then(function () {
             req.prerender.page = null;
         });
     }
@@ -509,7 +514,7 @@ server._send = function(req, res, statusCode, options) {
     req.prerender.documentHTML = options || req.prerender.documentHTML;
     req.prerender.statusCode = statusCode || req.prerender.statusCode;
 
-    if(req.prerender.statusCode) {
+    if (req.prerender.statusCode) {
         req.prerender.statusCode = parseInt(req.prerender.statusCode);
     }
 
@@ -518,13 +523,13 @@ server._send = function(req, res, statusCode, options) {
         req.prerender.redirectURL = options.redirectURL;
     }
 
-    this._pluginEvent("beforeSend", [req, res], function() {
+    this._pluginEvent("beforeSend", [req, res], function () {
 
         if (req.prerender.headers && req.prerender.headers.length) {
-            req.prerender.headers.forEach(function(header) {
+            req.prerender.headers.forEach(function (header) {
                 try {
                     res.setHeader(header.name, header.value);
-                } catch(e) {
+                } catch (e) {
                     util.log('unable to set header:', header.name);
                 }
             });
@@ -536,9 +541,9 @@ server._send = function(req, res, statusCode, options) {
 
         res.setHeader('Content-Type', 'text/html;charset=UTF-8');
 
-        if(req.headers['accept-encoding'] && req.headers['accept-encoding'].indexOf('gzip') >= 0) {
+        if (req.headers['accept-encoding'] && req.headers['accept-encoding'].indexOf('gzip') >= 0) {
             res.setHeader('Content-Encoding', 'gzip');
-            zlib.gzip(req.prerender.documentHTML, function(err, result) {
+            zlib.gzip(req.prerender.documentHTML, function (err, result) {
                 req.prerender.documentHTML = result;
                 _this._sendResponse.apply(_this, [req, res, options]);
             });
@@ -549,10 +554,10 @@ server._send = function(req, res, statusCode, options) {
     });
 };
 
-server._sendResponse = function(req, res, options) {
+server._sendResponse = function (req, res, options) {
 
     if (req.prerender.documentHTML) {
-        if(Buffer.isBuffer(req.prerender.documentHTML)) {
+        if (Buffer.isBuffer(req.prerender.documentHTML)) {
             res.setHeader('Content-Length', req.prerender.documentHTML.length);
         } else {
             res.setHeader('Content-Length', Buffer.byteLength(req.prerender.documentHTML, 'utf8'));
@@ -577,38 +582,38 @@ server._sendResponse = function(req, res, options) {
 
     res.end();
 
-    if(req.prerender.phantomId && this.phantom && this.phantom.id === req.prerender.phantomId) {
+    if (req.prerender.phantomId && this.phantom && this.phantom.id === req.prerender.phantomId) {
         this.phantom.requestsInFlight--;
     }
 
     var ms = new Date().getTime() - req.prerender.start.getTime();
     util.log('got', req.prerender.statusCode, 'in', ms + 'ms', 'for', req.prerender.url);
 
-    if(this.shouldKillPhantomJS(req) || (options && options.abort)) {
+    if (this.shouldKillPhantomJS(req) || (options && options.abort)) {
         req.prerender.isPageClosed = true;
         server._killPhantomJS();
     }
 };
 
-server.shouldKillPhantomJS = function(req) {
-    if(!this.phantom || this.phantom.id !== req.prerender.phantomId) {
+server.shouldKillPhantomJS = function (req) {
+    if (!this.phantom || this.phantom.id !== req.prerender.phantomId) {
         return false;
     }
 
     ++this.phantom.iteration;
 
-    if(this.phantom.iteration >= (this.options.iterations || NUM_ITERATIONS)) {
+    if (this.phantom.iteration >= (this.options.iterations || NUM_ITERATIONS)) {
         return true;
     }
 
-    if(this.phantom.iteration >= (this.options.softIterations || NUM_SOFT_ITERATIONS) && this.phantom.requestsInFlight <= 0) {
+    if (this.phantom.iteration >= (this.options.softIterations || NUM_SOFT_ITERATIONS) && this.phantom.requestsInFlight <= 0) {
         return true;
     }
 
     return false;
 }
 
-server._killPhantomJS = function() {
+server._killPhantomJS = function () {
     var _this = this;
 
     function restartPhantom() {
@@ -620,30 +625,30 @@ server._killPhantomJS = function() {
 };
 
 //Check and see if PhantomJS didn't get disposed so we can forcefully kill it
-server._disposeAll = function(callback) {
+server._disposeAll = function (callback) {
 
     var _this = this
-      , disposed = false
-      , phantomPid = this.phantom && this.phantom.childProcess && this.phantom.childProcess.pid;
+        , disposed = false
+        , phantomPid = this.phantom && this.phantom.childProcess && this.phantom.childProcess.pid;
 
     this.phantom = null;
 
-    setTimeout(function() {
+    setTimeout(function () {
 
-        if(disposed) {
+        if (disposed) {
             return;
         }
 
-        if(!disposed) {
+        if (!disposed) {
             console.log('unable to dispose PhantomJS. Forcing kill...');
 
             try {
-                if(phantomPid) {
+                if (phantomPid) {
                     process.kill(phantomPid, 'SIGKILL');
                 }
 
                 callback();
-            } catch(e) {
+            } catch (e) {
                 console.log('error force killing phantomjs pid', e);
                 process.kill(_this.options.worker.process.pid, 'SIGKILL');
             }
@@ -651,15 +656,15 @@ server._disposeAll = function(callback) {
     }, 10000);
 
 
-    phridge.disposeAll().then(function() {
+    phridge.disposeAll().then(function () {
         disposed = true;
         callback();
-    }).catch(function(err) {
+    }).catch(function (err) {
         util.log('error disposing all phantomjs instances:', err);
     });
 };
 
-server.exit = function() {
+server.exit = function () {
     var _this = this;
 
     function terminatePhantom() {
