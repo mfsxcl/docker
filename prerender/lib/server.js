@@ -2,7 +2,6 @@ var phridge = require('phridge')
     , _ = require('lodash')
     , util = require('./util.js')
     , zlib = require('zlib')
-    , raven = require('./utilRaven.js')
     , blockedResources = require('./resources/blocked-resources.json');
 
 
@@ -204,7 +203,6 @@ server.onPhantomPageCreate = function (req, res) {
             if ('end' === response.stage) {
                 if (response.url) {
                     _this.prerender.resourcesReceived.push(response);
-
                     if (logRequests) {
                         console.log(new Date().toISOString(), '-', _this.prerender.resourcesRequested.length - _this.prerender.resourcesReceived.length - _this.prerender.resourcesTimeout.length, response.url);
                     }

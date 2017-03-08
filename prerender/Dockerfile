@@ -10,6 +10,12 @@ RUN mkdir -p ${PRERENDER_ROOT}
 
 COPY . ${PRERENDER_ROOT}
 
+RUN rm -rf ${PRERENDER_ROOT}/node_modules
+
+RUN npm install forever -g
+
 RUN npm install
 
-CMD [ "npm", "start" ]
+RUN chmod +x ${PRERENDER_ROOT}/*.sh
+
+CMD ["/opt/entry.sh"]
