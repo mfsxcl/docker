@@ -8,14 +8,14 @@ WORKDIR ${PRERENDER_ROOT}
 
 RUN mkdir -p ${PRERENDER_ROOT}
 
-COPY . ${PRERENDER_ROOT}
-
-RUN rm -rf ${PRERENDER_ROOT}/node_modules
+COPY ./package.json ${PRERENDER_ROOT}/
 
 RUN npm install forever -g
 
 RUN npm install
 
+COPY . ${PRERENDER_ROOT}
+
 RUN chmod +x ${PRERENDER_ROOT}/*.sh
 
-CMD ["/opt/entry.sh"]
+CMD ["/usr/local/prerender/entry.sh"]
