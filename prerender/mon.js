@@ -14,7 +14,7 @@ client.on('error', function (e) {
 });
 client.captureMessage("raven init complete");
 
-tail = new Tail("log.out");
+var tail = new Tail("log.out");
 
 tail.on("line", function (data) {
     console.log(data);

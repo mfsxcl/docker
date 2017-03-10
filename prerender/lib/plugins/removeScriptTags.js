@@ -6,7 +6,7 @@ module.exports = {
 
         var matches = req.prerender.documentHTML.toString().match(/<script(?:.*?)>(?:[\S\s]*?)<\/script>/gi);
         for (var i = 0; matches && i < matches.length; i++) {
-            if(matches[i].indexOf('application/ld+json') === -1 && matches[i].indexOf('prerender') >= 0) {
+            if(matches[i].indexOf('application/ld+json') === -1 && matches[i].indexOf('prerender_sync') >= 0) {
                 req.prerender.documentHTML = req.prerender.documentHTML.toString().replace(matches[i], '');
             }
         }

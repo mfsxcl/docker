@@ -25,5 +25,6 @@
 	"hn.inspectlet.com",
 	"tpc.googlesyndication.com",
 	"partner.googleadservices.com",
-	"\\.woff"
+	"\\.woff",
+	"prerender_async"
 ]
