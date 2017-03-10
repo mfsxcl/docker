@@ -13,7 +13,6 @@ var cluster = require('cluster')
 exports = module.exports = function(options) {
     var port = options.port || process.env.PORT || 3000;
     var hostname = options.hostname || process.env.NODE_HOSTNAME || undefined;
-    util.log('------' + options);
 
     var server = require('./server');
     options.isMaster = cluster.isMaster;
