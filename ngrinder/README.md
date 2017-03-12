@@ -1,0 +1,1 @@
+docker run --name=ngrinder-controller --privileged --net=host -d -e SERVER_PORT=8585 -e SERVER_IP=10.4.22.121 docker-registry.hexun.com/hexunzq/ngrinder-controller:1.0.0
