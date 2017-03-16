@@ -4,6 +4,7 @@ MAINTAINER yuanyue
 # Tomcat and Java Vars
 ENV JAVA_HOME=/usr/local/jdk \
     CATALINA_HOME=/usr/local/tomcat \
+    CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar \
     PATH=$PATH:$JAVA_HOME/bin:${CATALINA_HOME}/bin:${CATALINA_HOME}/scripts \
     JAVA_OPTS="-Xms512m -Xmx2048m"
 
