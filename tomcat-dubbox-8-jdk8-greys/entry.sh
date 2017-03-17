@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+echo "export JAVA_HOME=${JAVA_HOME}" >> /etc/profile
+echo "export CLASSPATH=${CLASSPATH}" >> /etc/profile
+echo "export PATH=${PATH}" >> /etc/profile
+source /etc/profile
+
 if [ ! ${SERVER_PORT} ]; then
   SERVER_PORT=8080;
 fi
@@ -39,7 +44,6 @@ echo "<?xml version='1.0' encoding='utf-8'?>
 		       URIEncoding=\"UTF-8\"
                connectionTimeout=\"20000\"
                redirectPort=\"${SERVER_PORT_REDIRECT}\" >
-            <UpgradeProtocol className=\"org.apache.coyote.http2.Http2Protocol\" />
         </Connector>
     <Engine name=\"Catalina\" defaultHost=\"localhost\">
       <Host name=\"localhost\" appBase=\"webapps\" unpackWARs=\"true\" autoDeploy=\"true\">
@@ -52,13 +56,6 @@ echo "<?xml version='1.0' encoding='utf-8'?>
     </Engine>
     </Service>
 </Server>" > ${SERVER_XML}
-
-rm -rf ${CATALINA_HOME}/webapps/ROOT
-rm -rf ${CATALINA_HOME}/webapps/docs
-rm -rf ${CATALINA_HOME}/webapps/examples
-rm -rf ${CATALINA_HOME}/webapps/manager
-rm -rf ${CATALINA_HOME}/webapps/host-manager
-
 
 if [ ! ${SERVER_IP} ]; then
     echo "NOT SET SERVER IP"

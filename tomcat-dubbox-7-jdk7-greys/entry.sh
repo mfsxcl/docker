@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+echo "export JAVA_HOME=${JAVA_HOME}" >> /etc/profile
+echo "export CLASSPATH=${CLASSPATH}" >> /etc/profile
+echo "export PATH=${PATH}" >> /etc/profile
+source /etc/profile
+
 if [ ! ${SERVER_PORT} ]; then
   SERVER_PORT=8080;
 fi
