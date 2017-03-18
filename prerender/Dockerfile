@@ -14,8 +14,10 @@ RUN npm install forever -g
 
 RUN npm install
 
+RUN npm install --save node-async-require
+
 COPY . ${PRERENDER_ROOT}
 
 RUN chmod +x ${PRERENDER_ROOT}/*.sh
 
-CMD ["/usr/local/prerender/entry.sh"]
+CMD ${PRERENDER_ROOT}/entry.sh

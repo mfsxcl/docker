@@ -1,0 +1,3 @@
+module.exports = {
+   remoteUrl : "http://10.10.18.102:8901/api/config/file?app=prerender&env=product&version=1_0_0_0&key=prerender_cache_server.js"
+}
