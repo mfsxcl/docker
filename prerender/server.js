@@ -2,10 +2,10 @@
 var prerender = require('./lib');
 
 var server = prerender({
-    // workers: 1,
+    workers: 1,
     logRequests: true,
     cookiesEnabled: true,
-    workers: process.env.PRERENDER_NUM_WORKERS,
+    // workers: process.env.PRERENDER_NUM_WORKERS,
     iterations: process.env.PRERENDER_NUM_ITERATIONS
 });
 
