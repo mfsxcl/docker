@@ -26,5 +26,6 @@
 	"tpc.googlesyndication.com",
 	"partner.googleadservices.com",
 	"\\.woff",
-	"prerender_async"
+	"prerender_async",
+	"favicon\\.ico"
 ]
