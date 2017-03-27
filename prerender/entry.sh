@@ -1,5 +1,3 @@
 #!/usr/bin/env bash
-
-nohup forever mon.js &
-npm start | tee log.out
-
+nohup npm start > log.out &
+node monitor.js
