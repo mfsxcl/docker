@@ -1,3 +1,3 @@
 module.exports = {
-   remoteUrl : "http://disconf.intcoop.hexun.com/api/config/file?app=prerender&env=product&version=1_0_0_0&key=prerender_cache.js"
+   remoteUrl : "0000000000000"
 }

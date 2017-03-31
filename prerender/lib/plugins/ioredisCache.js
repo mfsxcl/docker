@@ -16,7 +16,8 @@ var redis = new Redis(remote_cache.server);
 redis.connect(function () {
     redis_online = true;
 });
-
+// import minify module
+var minify = require('html-minifier').minify;
 //remove key
 var rmQueryKey = function (url, param) {
     if (url.endsWith(param)) {
@@ -29,8 +30,6 @@ var cacheCleanKey = "prerender_cache_clean";
 // exports this module
 module.exports = {
     beforePhantomRequest: function (req, res, next) {
-        console.log("------***** " + req.prerender.url);
-
         if (req.method !== 'GET' || redis_online !== true || req.prerender.url.indexOf(cacheCleanKey) >= 0) {
             req.prerender.url = rmQueryKey(req.prerender.url, cacheCleanKey);
             return next();
@@ -61,7 +60,9 @@ module.exports = {
                     break;
                 }
             }
-            redis.set(cachePrefix + req.prerender.url, req.prerender.documentHTML, 'EX', ttl);
+            var content = minify(req.prerender.documentHTML, {collapseWhitespace: true});
+            //console.log("((((((((((" + content + ")))))");
+            redis.set(cachePrefix + req.prerender.url, content, 'EX', ttl);
         }
         next();
     }
