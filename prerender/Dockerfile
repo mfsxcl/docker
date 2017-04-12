@@ -41,10 +41,8 @@ RUN mkdir -p ${PRERENDER_ROOT}
 WORKDIR ${PRERENDER_ROOT}
 # copy package.json
 COPY package.json ${PRERENDER_ROOT}
-
+# cp phantomjs
 COPY phantomjs-2.1.1-linux-x86_64.tar.bz2 /tmp/phantomjs/
-# install forever
-RUN npm install forever -g
 # install all
 RUN npm install
 #copy resource to root

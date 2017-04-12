@@ -1,3 +1,5 @@
+// html encode/decode module
+var ent = require('ent');
 // require remote module
 require("node-async-require").install();
 // get cache config from disconf
@@ -61,7 +63,7 @@ module.exports = {
                 }
             }
             var content = minify(req.prerender.documentHTML, {collapseWhitespace: true});
-            //console.log("((((((((((" + content + ")))))");
+            content = ent.decode(content);
             redis.set(cachePrefix + req.prerender.url, content, 'EX', ttl);
         }
         next();
