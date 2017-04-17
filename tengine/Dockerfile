@@ -4,7 +4,7 @@ MAINTAINER yuanyue 87439247@qq.com
 ENV NGINX_VERSION tengine-2.2.0
 # install dependency
 RUN yum -y update && yum -y install wget tar openssl openssl-devel git gcc gcc-c++ autoconf automake make \
-libxml2 libxml2-dev libxslt-devel gd-devel perl-devel perl-ExtUtils-Embed GeoIP GeoIP-devel GeoIP-data vixie-cron crontabs
+libxml2 libxml2-dev libxslt-devel gd-devel perl-devel perl-ExtUtils-Embed GeoIP GeoIP-devel GeoIP-data inotify-tools
 # download tengine 2.2.0
 RUN  wget http://tengine.taobao.org/download/${NGINX_VERSION}.tar.gz && \
  tar -zvxf ${NGINX_VERSION}.tar.gz && \
@@ -66,6 +66,10 @@ RUN cd /opt/${NGINX_VERSION} && ./configure --enable-mods-static=all \
         --add-module=ngx_http_substitutions_filter_module
 
 RUN cd /opt/${NGINX_VERSION} && make && make install
+# inotify watch file change
+COPY inotify-tools-3.14-8.el7.x86_64.rpm /opt/
+# install inotify
+RUN rpm -ivh /opt/inotify-tools-3.14-8.el7.x86_64.rpm
 # copy convertGBK2UTF8.sh
 COPY convertGBK2UTF8.sh /opt/convertGBK2UTF8.sh
 # copy entry.sh
@@ -81,6 +85,6 @@ EXPOSE 80 443
 
 VOLUME /opt/inc_source
 
-CMD /opt/entry.sh
+CMD ["/opt/entry.sh"]
 
 
