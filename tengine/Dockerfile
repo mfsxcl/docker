@@ -1,29 +1,17 @@
 FROM centos:7
-MAINTAINER m
+MAINTAINER yuanyue 87439247@qq.com
 
 ENV NGINX_VERSION tengine-2.2.0
-
-
-RUN yum -y update && yum -y install wget tar openssl openssl-devel git gcc gcc-c++ autoconf automake make 
-
-
+# install dependency
+RUN yum -y update && yum -y install wget tar openssl openssl-devel git gcc gcc-c++ autoconf automake make \
+libxml2 libxml2-dev libxslt-devel gd-devel perl-devel perl-ExtUtils-Embed GeoIP GeoIP-devel GeoIP-data vixie-cron crontabs
+# download tengine 2.2.0
 RUN  wget http://tengine.taobao.org/download/${NGINX_VERSION}.tar.gz && \
  tar -zvxf ${NGINX_VERSION}.tar.gz && \
  rm -rf ${NGINX_VERSION}.tar.gz && \
  mv ${NGINX_VERSION} /opt/${NGINX_VERSION}
-
-#RUN cd /opt/${NGINX_VERSION}
-
-
+# download ngx_http_substitutions_filter_module
 RUN cd /opt/${NGINX_VERSION} && git clone git://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
-
-RUN yum -y install libxml2 libxml2-dev libxslt-devel gd-devel
-
-RUN yum -y install perl-devel perl-ExtUtils-Embed
-
-RUN yum -y install GeoIP GeoIP-devel GeoIP-data
-
-
 
 RUN cd /opt/${NGINX_VERSION} && ./configure --enable-mods-static=all \
         --user=root \
@@ -78,20 +66,21 @@ RUN cd /opt/${NGINX_VERSION} && ./configure --enable-mods-static=all \
         --add-module=ngx_http_substitutions_filter_module
 
 RUN cd /opt/${NGINX_VERSION} && make && make install
-
-#ADD nginx.conf /opt/nginx/nginx.conf
-
-#ADD html/ /opt/nginx/html/
-
-
-#VOLUME ["/opt/nginx/log"]
-#VOLUME ["/var/cache/nginx"]
-
+# copy convertGBK2UTF8.sh
+COPY convertGBK2UTF8.sh /opt/convertGBK2UTF8.sh
+# copy entry.sh
+COPY entry.sh /opt/entry.sh
+# set executable
+RUN chmod +x /opt/*.sh
+# link /opt/inc/utf-8 to /opt/nginx/html/inc
+RUN mkdir -p /opt/inc_target && ln -s /opt/inc_target /opt/nginx/html/inc
 
 WORKDIR /opt/nginx
 
 EXPOSE 80 443
 
-CMD ["nginx", "-g", "daemon off;"]
+VOLUME /opt/inc_source
+
+CMD /opt/entry.sh
 
 
