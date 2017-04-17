@@ -1,3 +1,3 @@
 #!/bin/bash 
 
-docker build -t apache/incubator-rocketmq-broker:broker-master-a .
+docker build -t rocketmq-broker:4.0.0 .
