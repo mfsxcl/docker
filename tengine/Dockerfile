@@ -18,8 +18,8 @@ RUN cd /opt/${NGINX_VERSION} && ./configure --enable-mods-static=all \
         --group=root \
         --prefix=/opt/nginx \
         --conf-path=/opt/nginx/nginx.conf \
-        --lock-path=/var/lock/nginx.lock \
-        --pid-path=/run/nginx.pid \
+        --lock-path=/opt/nginx/nginx.lock \
+        --pid-path=/opt/nginx/nginx.pid \
         --http-client-body-temp-path=/opt/nginx/body \
         --http-fastcgi-temp-path=/opt/nginx/fastcgi \
         --http-proxy-temp-path=/opt/nginx/proxy \
@@ -60,12 +60,14 @@ RUN cd /opt/${NGINX_VERSION} && ./configure --enable-mods-static=all \
         --with-pcre \
         --with-pcre-jit \
         --with-debug \
-        --http-log-path=/var/log/nginx/access.log \
-        --error-log-path=/var/log/nginx/error.log \
+        --http-log-path=/opt/nginx/logs/access.log \
+        --error-log-path=/opt/nginx/logs/error.log \
         --sbin-path=/usr/sbin/nginx \
         --add-module=ngx_http_substitutions_filter_module
 
 RUN cd /opt/${NGINX_VERSION} && make && make install
+# set permission
+RUN chown -R root:root /opt/nginx && chmod -R a+rw /opt/nginx
 # cp resource
 COPY * /opt/
 # install inotify

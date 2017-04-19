@@ -19,4 +19,4 @@ fi
 
 nginx -g 'daemon on;'
 
-tail -f /opt/entry.sh
+tail -f -n 2000 /opt/nginx/nginx.conf
