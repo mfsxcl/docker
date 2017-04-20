@@ -37,6 +37,7 @@ echo "<?xml version='1.0' encoding='utf-8'?>
     		   port=\"${SERVER_PORT}\"
 		       protocol=\"HTTP/1.1\"
 		       URIEncoding=\"UTF-8\"
+		       maxHttpHeaderSize=\"524288\"
                connectionTimeout=\"20000\"
                redirectPort=\"${SERVER_PORT_REDIRECT}\" >
             <UpgradeProtocol className=\"org.apache.coyote.http2.Http2Protocol\" />
