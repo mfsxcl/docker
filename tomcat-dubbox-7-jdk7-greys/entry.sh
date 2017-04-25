@@ -25,32 +25,23 @@ fi
 #echo tomcat/conf/server.xml
 SERVER_XML=${CATALINA_HOME}/conf/server.xml
 echo "<?xml version='1.0' encoding='utf-8'?>
-<Server port=\"${SERVER_PORT_SERVER}\" shutdown=\"SHUTDOWN\">
-  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />
-  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />
-  <Listener className=\"org.apache.catalina.core.JasperListener\" />
-  <Listener className=\"org.apache.catalina.core.JreMemoryLeakPreventionListener\" />
-  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" />
-  <Listener className=\"org.apache.catalina.core.ThreadLocalLeakPreventionListener\" />
-  <Service name=\"Catalina\">
-    <!--The connectors can use a shared executor, you can define one or more named thread pools-->
-    <Executor name=\"tomcatThreadPool\" namePrefix=\"catalina-exec-\" maxThreads=\"512\" minSpareThreads=\"4\"/>
-    <Connector executor=\"tomcatThreadPool\"
-               port=\"${SERVER_PORT}\"
-               enableLookups=\"false\"
-               disableUploadTimeout=\"true\"
-               acceptCount=\"512\"
-               protocol=\"HTTP/1.1\"
-               URIEncoding=\"UTF-8\"
+<Server port=\"-1\" shutdown=\"SHUTDOWN\">
+    <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />
+    <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />
+    <Listener className=\"org.apache.catalina.core.JreMemoryLeakPreventionListener\" />
+    <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" />
+    <Listener className=\"org.apache.catalina.core.ThreadLocalLeakPreventionListener\" />
+    <Service name=\"Catalina\">
+        <Executor name=\"tomcatThreadPool\" namePrefix=\"catalina-exec-\" maxThreads=\"512\" minSpareThreads=\"4\"/>
+        <Connector executor=\"tomcatThreadPool\"
+    		   port=\"${SERVER_PORT}\"
+		       protocol=\"HTTP/1.1\"
+		       URIEncoding=\"UTF-8\"
+		       maxHttpHeaderSize=\"524288\"
                connectionTimeout=\"20000\"
-               redirectPort=\"${SERVER_PORT_REDIRECT}\" />
-    <!--
-    <Connector port=\"${SERVER_PORT_REDIRECT}\" protocol=\"org.apache.coyote.http11.Http11Protocol\"
-               maxThreads=\"150\" SSLEnabled=\"true\" URIEncoding=\"UTF-8\" scheme=\"https\" secure=\"true\"
-               clientAuth=\"false\" sslProtocol=\"TLS\" />
-    -->
-    <!-- Define an AJP 1.3 Connector on port 8009 -->
-    <Connector port=\"${SERVER_PORT_AJP}\" protocol=\"AJP/1.3\" redirectPort=\"${SERVER_PORT_REDIRECT}\" />
+               redirectPort=\"${SERVER_PORT_REDIRECT}\" >
+            <UpgradeProtocol className=\"org.apache.coyote.http2.Http2Protocol\" />
+        </Connector>
     <Engine name=\"Catalina\" defaultHost=\"localhost\">
       <Host name=\"localhost\" appBase=\"webapps\" unpackWARs=\"true\" autoDeploy=\"true\">
       <Valve className=\"org.apache.catalina.valves.AccessLogValve\"
@@ -60,7 +51,7 @@ echo "<?xml version='1.0' encoding='utf-8'?>
             fileDateFormat=\"yyyy-MM-dd_HH\"/>
       </Host>
     </Engine>
-  </Service>
+    </Service>
 </Server>" > ${SERVER_XML}
 
 rm -rf ${CATALINA_HOME}/webapps/ROOT
@@ -88,16 +79,12 @@ export CATALINA_OPTS="
 -Xss512k
 -XX:NewSize=1550M
 -XX:MaxNewSize=1550M
--XX:PermSize=128M
--XX:MaxPermSize=256M
 -XX:+AggressiveOpts
 -XX:+UseBiasedLocking
 -XX:+DisableExplicitGC
 -XX:+UseParNewGC
 -XX:+UseConcMarkSweepGC
--XX:MaxTenuringThreshold=31
 -XX:+CMSParallelRemarkEnabled
--XX:+UseCMSCompactAtFullCollection
 -XX:LargePageSizeInBytes=128m
 -XX:+UseFastAccessorMethods
 -XX:+UseCMSInitiatingOccupancyOnly

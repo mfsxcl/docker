@@ -20,6 +20,4 @@ server.use(prerender.httpHeaders());
 // server.use(prerender.inMemoryHtmlCache());
 // server.use(prerender.redisCache());
 server.use(prerender.ioredisCache());
-// server.use(prerender.filter());
-
 server.start();

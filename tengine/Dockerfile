@@ -1,37 +1,25 @@
 FROM centos:7
-MAINTAINER m
+MAINTAINER yuanyue 87439247@qq.com
 
 ENV NGINX_VERSION tengine-2.2.0
-
-
-RUN yum -y update && yum -y install wget tar openssl openssl-devel git gcc gcc-c++ autoconf automake make 
-
-
+# install dependency
+RUN yum -y update && yum -y install wget tar openssl openssl-devel git gcc gcc-c++ autoconf automake make \
+libxml2 libxml2-dev libxslt-devel gd-devel perl-devel perl-ExtUtils-Embed GeoIP GeoIP-devel GeoIP-data inotify-tools vixie-cron crontabs logrotate
+# download tengine 2.2.0
 RUN  wget http://tengine.taobao.org/download/${NGINX_VERSION}.tar.gz && \
  tar -zvxf ${NGINX_VERSION}.tar.gz && \
  rm -rf ${NGINX_VERSION}.tar.gz && \
  mv ${NGINX_VERSION} /opt/${NGINX_VERSION}
-
-#RUN cd /opt/${NGINX_VERSION}
-
-
+# download ngx_http_substitutions_filter_module
 RUN cd /opt/${NGINX_VERSION} && git clone git://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
-
-RUN yum -y install libxml2 libxml2-dev libxslt-devel gd-devel
-
-RUN yum -y install perl-devel perl-ExtUtils-Embed
-
-RUN yum -y install GeoIP GeoIP-devel GeoIP-data
-
-
 
 RUN cd /opt/${NGINX_VERSION} && ./configure --enable-mods-static=all \
         --user=root \
         --group=root \
         --prefix=/opt/nginx \
         --conf-path=/opt/nginx/nginx.conf \
-        --lock-path=/var/lock/nginx.lock \
-        --pid-path=/run/nginx.pid \
+        --lock-path=/opt/nginx/nginx.lock \
+        --pid-path=/opt/nginx/nginx.pid \
         --http-client-body-temp-path=/opt/nginx/body \
         --http-fastcgi-temp-path=/opt/nginx/fastcgi \
         --http-proxy-temp-path=/opt/nginx/proxy \
@@ -72,26 +60,31 @@ RUN cd /opt/${NGINX_VERSION} && ./configure --enable-mods-static=all \
         --with-pcre \
         --with-pcre-jit \
         --with-debug \
-        --http-log-path=/var/log/nginx/access.log \
-        --error-log-path=/var/log/nginx/error.log \
+        --http-log-path=/opt/nginx/logs/access.log \
+        --error-log-path=/opt/nginx/logs/error.log \
         --sbin-path=/usr/sbin/nginx \
         --add-module=ngx_http_substitutions_filter_module
 
 RUN cd /opt/${NGINX_VERSION} && make && make install
-
-#ADD nginx.conf /opt/nginx/nginx.conf
-
-#ADD html/ /opt/nginx/html/
-
-
-#VOLUME ["/opt/nginx/log"]
-#VOLUME ["/var/cache/nginx"]
-
+# set permission
+RUN chown -R root:root /opt/nginx && chmod -R a+rw /opt/nginx
+# cp resource
+COPY * /opt/
+# install inotify
+RUN rpm -ivh /opt/inotify-tools-3.14-8.el7.x86_64.rpm
+# set executable
+RUN chmod +x /opt/*.sh
+# link /opt/inc/utf-8 to /opt/nginx/html/inc
+RUN mkdir -p /opt/inc_target && ln -s /opt/inc_target /opt/nginx/html/inc
+# log rotate
+RUN echo '0 0 1 * * /opt/nginx-log-rotate.sh' >> /var/spool/cron/root
 
 WORKDIR /opt/nginx
 
 EXPOSE 80 443
 
-CMD ["nginx", "-g", "daemon off;"]
+VOLUME /opt/inc_source
+
+CMD ["/opt/entry.sh"]
 
 
